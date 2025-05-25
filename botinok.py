@@ -8,7 +8,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton
 )
 
-TOKEN = "8131725923:AAFJkvXP0mxUvUif8I-0Kx4h9cqaWnjztdw"  # Не забудь скрыть токен в проде!
+TOKEN = "8131725923:AAFJkvXP0mxUvUif8I-0Kx4h9cqaWnjztdw"
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -72,9 +72,10 @@ async def new_questions(message: types.Message):
     selected = select_questions()
 
     for q in selected:
+        index = questions.index(q)  # Получаем индекс в общем списке
         btn = InlineKeyboardButton(
             text="🔍 Показать ответ",
-            callback_data=f"ans_{q['uk_code']}"
+            callback_data=f"ans_{index}"
         )
         await message.answer(
             f"📌 {q['uk_code']}\n❓ {q['text']}",
@@ -85,22 +86,23 @@ async def new_questions(message: types.Message):
 @dp.callback_query(lambda c: c.data.startswith('ans_') or c.data.startswith('hide_'))
 async def toggle_answer(callback: types.CallbackQuery):
     data = callback.data
-    code = data.split('_')[1]
-    question = next((q for q in questions if q['uk_code'] == code), None)
+    index = int(data.split('_')[1])
 
-    if not question:
+    if index >= len(questions):
         await callback.answer("Вопрос не найден.")
         return
+
+    question = questions[index]
 
     if data.startswith("ans_"):
         text = f"📌 {question['uk_code']}\n❓ {question['text']}\n\n📝 <b>Ответ:</b>\n{question['answer']}"
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="🙈 Скрыть ответ", callback_data=f"hide_{question['uk_code']}")]]
+            inline_keyboard=[[InlineKeyboardButton(text="🙈 Скрыть ответ", callback_data=f"hide_{index}")]]
         )
     else:
         text = f"📌 {question['uk_code']}\n❓ {question['text']}"
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="🔍 Показать ответ", callback_data=f"ans_{question['uk_code']}")]]
+            inline_keyboard=[[InlineKeyboardButton(text="🔍 Показать ответ", callback_data=f"ans_{index}")]]
         )
 
     try:
@@ -111,9 +113,9 @@ async def toggle_answer(callback: types.CallbackQuery):
 
     await callback.answer()
 
+
 @dp.message(lambda m: m.sticker is not None)
 async def on_sticker(message: types.Message):
-    # Например, используем тот же стикер в ответ
     await message.answer_sticker(message.sticker.file_id)
 
 
@@ -123,3 +125,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
